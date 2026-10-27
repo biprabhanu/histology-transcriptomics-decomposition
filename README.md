@@ -21,7 +21,7 @@ No Hugging Face account is needed (the dataset is public), and the download is a
 
 ## Run
 
-Open `model1_base.ipynb` with the `computational_multiomics` kernel and run all cells.
+Open `baseline.ipynb` with the `computational_multiomics` kernel and run all cells.
 
 ## Data credit
 
