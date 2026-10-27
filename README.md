@@ -17,7 +17,7 @@ conda activate computational_multiomics
 hf download MahmoodLab/hest-bench --repo-type dataset --include "IDC/*" --exclude "IDC/old/*" --local-dir data/hest-bench
 ```
 
-No Hugging Face account is needed (the dataset is public), and the download is about 5.6 GB.
+
 
 ## Run
 
