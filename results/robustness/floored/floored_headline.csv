@@ -1,0 +1,17 @@
+model,metric,estimate,ci_low,ci_high,patient,median_comp_over_img,n_img_gt_005,median_delta_morph,n_morph_genes
+resnet50,median_comp_over_img,1.7707698535186218,1.5565929636172071,2.0034995987576103,,,,,
+resnet50,n_img_gt_005,105.0,74.0,110.0,,,,,
+resnet50,median_delta_morph,9.149939591251988e-06,1.3199752806891674e-06,1.1900598149858221e-05,,,,,
+resnet50,n_morph_genes,2.0,0.0,5.0,,,,,
+resnet50,per_patient,,,,P1,1.7855877701232648,96.0,1.2158143536389332e-06,1.0
+resnet50,per_patient,,,,P2,1.519622618985534,94.0,0.0,7.0
+resnet50,per_patient,,,,P3,1.5647745544552807,107.0,0.0,5.0
+resnet50,per_patient,,,,P4,2.1161614634851325,63.0,0.0,0.0
+phikon2,median_comp_over_img,1.1177980261773608,0.9974830948958933,1.1793399047590387,,,,,
+phikon2,n_img_gt_005,142.0,124.0,146.0,,,,,
+phikon2,median_delta_morph,4.0297042697784446e-05,4.774406759305849e-06,4.7938289878451945e-05,,,,,
+phikon2,n_morph_genes,5.0,2.0,9.0,,,,,
+phikon2,per_patient,,,,P1,1.071190580736444,121.0,6.160508425945288e-06,3.0
+phikon2,per_patient,,,,P2,0.9775471373634448,120.0,4.191842969514248e-06,10.0
+phikon2,per_patient,,,,P3,1.1667147143001597,120.0,0.0,9.0
+phikon2,per_patient,,,,P4,1.1677277506988542,108.0,0.0,2.0

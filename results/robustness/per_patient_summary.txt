@@ -1,0 +1,27 @@
+== per held-out patient (headline_holds: median r2_comp/r2_img >= 0.9 and genes with morph_share >= 0.10 <= 5% of genes) ==
+   model patient  sample  median_ceiling  noise_limited_share  median_comp_over_img  n_img_gt_005  median_delta_morph  n_morph_share_ge_010  n_morph_share_ge_010_r2full_pos  delta_morph_ADIPOQ  delta_morph_COLEC12  delta_morph_NPY1R headline_holds
+resnet50      P1 TENX191           0.762                0.029                 1.786            96               0.000                     1                                1              -0.337                0.000              0.000           True
+resnet50      P2 TENX195           0.618                0.036                 1.520            94              -0.000                     7                                7               0.258                0.096              0.000           True
+resnet50      P3 TENX199           0.710                0.054                 1.565           107               0.000                     6                                5               0.287                0.000             -0.583           True
+resnet50      P4 TENX202           0.818                0.021                 2.116            63               0.000                     3                                0               0.157               -0.007              0.002           True
+resnet50  pooled     all           0.707                0.011                 1.778            59              -0.000                     0                                0               0.091                0.022             -0.145            NaN
+ phikon2      P1 TENX191           0.762                0.029                 1.071           121               0.000                     3                                3              -0.197                0.051              0.000           True
+ phikon2      P2 TENX195           0.618                0.036                 0.978           120               0.000                    10                               10               0.359                0.136              0.004           True
+ phikon2      P3 TENX199           0.710                0.054                 1.167           120               0.000                     9                                9               0.579                0.129             -0.272           True
+ phikon2      P4 TENX202           0.818                0.021                 1.168           108              -0.000                     8                                2               0.266                0.047              2.237           True
+ phikon2  pooled     all           0.707                0.011                 1.061           100              -0.000                     6                                2               0.252                0.091              0.492            NaN
+
+== resnet50: patient bootstrap (1000 resamples of 4 patients, seed 0) ==
+  median_ceiling                     point=0.707  95% CI [0.643, 0.779]
+  noise_limited_share                point=0.011  95% CI [0.011, 0.036]
+  median_comp_over_img               point=1.778  95% CI [1.542, 2.184]
+  median_delta_morph                 point=-0.000  95% CI [-0.000, 0.000]
+  n_morph_share_ge_010_r2full_pos    point=0.000  95% CI [0.000, 4.000]
+
+== phikon2: patient bootstrap (1000 resamples of 4 patients, seed 0) ==
+  median_ceiling                     point=0.707  95% CI [0.643, 0.779]
+  noise_limited_share                point=0.011  95% CI [0.011, 0.036]
+  median_comp_over_img               point=1.061  95% CI [0.966, 1.179]
+  median_delta_morph                 point=-0.000  95% CI [-0.000, 0.000]
+  n_morph_share_ge_010_r2full_pos    point=2.000  95% CI [1.000, 9.000]
+

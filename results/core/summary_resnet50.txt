@@ -1,0 +1,30 @@
+model: resnet50   samples: 4   patients: 4   held-out samples: 4
+genes: 280
+median ceiling: 0.707
+category counts (genes): not_predicted=226, composition_explained=51, noise_limited=3
+median r2_comp / r2_img among genes with r2_img > 0.05 (n=59): 1.778
+
+top 15 genes by morph_share:
+ target  ceiling  r2_comp  r2_img  r2_full  morph_share              category
+ ADIPOQ    0.954   -0.228   0.020   -0.137        0.096         not_predicted
+    LPL    0.848   -0.203  -0.004   -0.135        0.080         not_predicted
+ POLR2A    0.450   -0.309  -0.058   -0.275        0.075         not_predicted
+  ADH1B    0.939   -0.209   0.048   -0.141        0.073         not_predicted
+  CXCR4    0.881   -0.259  -0.035   -0.227        0.036         not_predicted
+   ESR1    0.856   -0.608  -0.136   -0.579        0.034         not_predicted
+ LUC7L3    0.445   -0.010   0.034    0.002        0.029         not_predicted
+COLEC12    0.801    0.010   0.116    0.032        0.028 composition_explained
+  HINT1    0.593    0.132   0.134    0.146        0.024 composition_explained
+   MMP2    0.976    0.304   0.376    0.325        0.021 composition_explained
+ SCUBE2    0.794   -0.239  -0.065   -0.223        0.020         not_predicted
+  LOXL1    0.760    0.212   0.134    0.225        0.018 composition_explained
+  TOMM7    0.519   -0.066   0.004   -0.058        0.014         not_predicted
+   LEPR    0.613   -0.299  -0.048   -0.290        0.014         not_predicted
+RARRES1    0.706    0.039   0.040    0.048        0.013         not_predicted
+
+programmes:
+            target  ceiling  r2_comp  r2_img  r2_full  delta_morph  comp_share  morph_share              category
+PROG_Proliferation    0.957    0.265   0.132    0.257       -0.008       0.277       -0.009 composition_explained
+      PROG_Hypoxia    0.833   -0.072  -0.037   -0.072       -0.000      -0.086       -0.000         not_predicted
+          PROG_EMT    0.971    0.729   0.468    0.742        0.013       0.750        0.013 composition_explained
+   PROG_Interferon    0.926    0.320   0.075    0.320       -0.000       0.346       -0.000         not_predicted

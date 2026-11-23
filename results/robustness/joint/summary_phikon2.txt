@@ -1,0 +1,30 @@
+model: phikon2   samples: 4   patients: 4   held-out samples: 4
+genes: 280
+median ceiling: 0.707
+category counts (genes): not_predicted=182, composition_explained=92, morphology_visible=3, noise_limited=3
+median r2_comp / r2_img among genes with r2_img > 0.05 (n=100): 0.961
+
+top 15 genes by morph_share:
+ target  ceiling  r2_comp  r2_img  r2_full  morph_share              category
+  NPY1R    0.729  -10.804  -5.454   -9.882        1.266    morphology_visible
+ ADIPOQ    0.954   -0.103   0.196    0.108        0.221    morphology_visible
+   LEPR    0.613   -0.310   0.063   -0.189        0.197    morphology_visible
+    LPL    0.848   -0.166  -0.076   -0.091        0.089         not_predicted
+  LYVE1    0.854    0.053   0.167    0.121        0.080 composition_explained
+   SDC1    0.941    0.118   0.219    0.187        0.073 composition_explained
+   MMP2    0.976    0.086   0.520    0.156        0.071 composition_explained
+  MMP11    0.897    0.011   0.055    0.059        0.054         not_predicted
+COLEC12    0.801    0.047   0.222    0.089        0.053 composition_explained
+  HSPD1    0.619    0.056   0.043    0.085        0.047         not_predicted
+  TOMM7    0.519   -0.099   0.006   -0.078        0.042         not_predicted
+  YWHAQ    0.614    0.076   0.104    0.099        0.037 composition_explained
+ MALAT1    0.947    0.181   0.232    0.216        0.037 composition_explained
+  MS4A1    0.780  -10.464 -11.796  -10.437        0.034         not_predicted
+    C1R    0.943    0.317   0.503    0.343        0.027 composition_explained
+
+programmes:
+            target  ceiling  r2_comp  r2_img  r2_full  delta_morph  comp_share  morph_share              category
+PROG_Proliferation    0.957    0.234   0.231    0.233       -0.002       0.245       -0.002 composition_explained
+      PROG_Hypoxia    0.833   -0.113  -0.086   -0.140       -0.027      -0.135       -0.032         not_predicted
+          PROG_EMT    0.971    0.721   0.610    0.756        0.035       0.743        0.036 composition_explained
+   PROG_Interferon    0.926    0.382   0.166    0.372       -0.009       0.412       -0.010 composition_explained

@@ -1,0 +1,26 @@
+== resnet50 (R2 floored at 0 per held-out sample) ==
+  median_comp_over_img: 1.771  95% CI [1.557, 2.003]
+  n_img_gt_005: 105  95% CI [74, 110]
+  median_delta_morph: 9.15e-06  95% CI [1.32e-06, 1.19e-05]
+  n_morph_genes: 2  95% CI [0, 5]
+  P1: ratio 1.786 (n=96), morph genes 1
+  P2: ratio 1.520 (n=94), morph genes 7
+  P3: ratio 1.565 (n=107), morph genes 5
+  P4: ratio 2.116 (n=63), morph genes 0
+  genes with morph_share>=0.10 & R2_full>0 in >=3/4 patients: 0 []
+  ADIPOQ: delta_morph+ 0.136 morph_share 0.143 R2_full+ 0.224
+  COLEC12: delta_morph+ 0.024 morph_share 0.030 R2_full+ 0.206
+  NPY1R: delta_morph+ 0.000 morph_share 0.000 R2_full+ 0.011
+== phikon2 (R2 floored at 0 per held-out sample) ==
+  median_comp_over_img: 1.118  95% CI [0.9975, 1.179]
+  n_img_gt_005: 142  95% CI [124, 146]
+  median_delta_morph: 4.03e-05  95% CI [4.774e-06, 4.794e-05]
+  n_morph_genes: 5  95% CI [2, 9]
+  P1: ratio 1.071 (n=121), morph genes 3
+  P2: ratio 0.978 (n=120), morph genes 10
+  P3: ratio 1.167 (n=120), morph genes 9
+  P4: ratio 1.168 (n=108), morph genes 2
+  genes with morph_share>=0.10 & R2_full>0 in >=3/4 patients: 1 [np.str_('MYH11')]
+  ADIPOQ: delta_morph+ 0.234 morph_share 0.246 R2_full+ 0.322
+  COLEC12: delta_morph+ 0.079 morph_share 0.099 R2_full+ 0.261
+  NPY1R: delta_morph+ 0.001 morph_share 0.001 R2_full+ 0.012
