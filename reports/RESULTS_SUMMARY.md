@@ -1,7 +1,7 @@
 # What Does Tissue Morphology Encode? Results Summary
 
-**Bipra Bhanu Mohanty, Madhur**. DH607 Computational Multi-omics, IIT Bombay. Instructor: Prof. Saket Choudhary. 24 November 2026.
-*Short poster version of [PROJECT_REPORT.md](PROJECT_REPORT.md). All numbers come from `results/core` and `results/robustness`.*
+**Bipra Bhanu Mohanty, Madhur Omprakash Likhmani**. DH607 Computational Multi-omics, IIT Bombay. Instructor: Prof. Saket Choudhary. 24 November 2026.
+*Short poster version of [PROJECT_REPORT.md](PROJECT_REPORT.md) ([PDF](PROJECT_REPORT.pdf)). All numbers come from `results/core` and `results/robustness`.*
 
 ## Key message
 On a 280-gene Xenium breast cancer panel at 100 µm, H&E-to-expression models mainly read out **cell-type composition**. Measurement noise is not the bottleneck, and reproducible morphology signal beyond composition is essentially absent.

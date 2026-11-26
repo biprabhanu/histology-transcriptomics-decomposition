@@ -1,0 +1,436 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf,skip=4pt]{caption}
+\usepackage{authblk}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{enumitem}
+\usepackage[most]{tcolorbox}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
+
+\graphicspath{{../../results/}}
+\setlist{itemsep=2pt,topsep=3pt}
+\sisetup{group-separator={,},group-minimum-digits=4}
+
+\newcommand{\Rc}{R^2_{\mathrm{comp}}}
+\newcommand{\Ri}{R^2_{\mathrm{img}}}
+\newcommand{\Rf}{R^2_{\mathrm{full}}}
+\newcommand{\dm}{\Delta_{\mathrm{morph}}}
+
+\newtcolorbox{keybox}[1]{colback=blue!3!white,colframe=blue!40!black,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,title=\textbf{#1},fonttitle=\small}
+
+\title{\textbf{What Does Tissue Morphology Encode?}\\[2pt]
+\large Separating Measurement Noise, Cell-Type Composition and Morphology\\ in H\&E-to-Gene-Expression Prediction}
+\author{Bipra Bhanu Mohanty}
+\author{Madhur Omprakash Likhmani}
+\affil{DH607 Computational Multi-omics, IIT Bombay. Instructor: Prof.\ Saket Choudhary}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Models that predict gene expression from H\&E images are usually judged by one accuracy score per gene. That score mixes three things: measurement noise in the target, the cell-type composition of the tissue, and morphology beyond composition. We separate the three for every gene on a 10x Genomics Xenium breast cancer study from HEST-1k (280 genes, 4 patients, \SI{100}{\micro\metre} spots). Binomial data thinning splits each spot's transcripts into independent parts, so one assay gives (i) cell types, (ii) a noise ceiling and (iii) the prediction target. Ridge models on composition, on image features (ResNet-50, Phikon-v2), and on image features fitted to composition residuals are tested on held-out patients. Noise is not the bottleneck: the median ceiling is $0.707$ and only 3 of 280 genes are noise-limited, yet most genes are not predicted. Where the image succeeds, composition alone does as well or better (median $\Rc/\Ri = 1.77$ for ResNet-50 and $1.12$ for Phikon-v2, in all 4 patients). Morphology signal beyond composition appears in only 2 and 5 genes, all adipose or smooth-muscle markers, and only \textit{MYH11} replicates. No biological programme shows morphology signal. On this data, H\&E-to-expression models mainly read out which cells are present.
+\end{abstract}
+
+\begin{keybox}{Key findings at a glance}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Failure is not noise.} 277 of 280 genes are measured reliably, but 226 (ResNet-50) and 181 (Phikon-v2) are not predicted in new patients.
+  \item \textbf{Success is composition.} For genes the image predicts, cell-type fractions alone predict as well or better, in every patient and for both encoders.
+  \item \textbf{The image sees cell types.} H\&E features predict epithelial, T-cell, fibroblast and endothelial fractions in unseen patients.
+  \item \textbf{Little morphology beyond composition.} 2--5 genes, all likely cell types we missed; only 1 replicates.
+  \item \textbf{Programmes are composition.} Proliferation, EMT and interferon are explained by composition; hypoxia is not predicted.
+\end{enumerate}
+\end{keybox}
+
+% ===========================================================================
+\section{Introduction and literature review}
+\label{sec:intro}
+
+\textbf{Predicting expression from H\&E.} Routine H\&E slides exist for millions of patients, while spatial transcriptomics is expensive. Predicting expression from H\&E would bring molecular read-outs to these archives. ST-Net was the first model to predict spatial gene expression from H\&E patches, at \SI{100}{\micro\metre} in breast cancer~\cite{he2020stnet}. HEST-1k then paired over a thousand H\&E images with spatial transcriptomics and benchmarked image encoders on this task; pathology foundation models scored higher than ImageNet features~\cite{jaume2024hest}. An independent benchmark of eleven methods found modest accuracy, limited generalisation to new datasets and no single best method~\cite{wang2025benchmark}.
+
+\textbf{The gap.} All these studies report one correlation or $R^2$ per gene. This score cannot say \emph{why} a gene is or is not predicted:
+\begin{itemize}
+  \item a \emph{low} score may mean the gene is too noisy for any model to predict;
+  \item a \emph{high} score may only mean the image recognises cell types, because many genes are cell-type markers and H\&E features are known to capture tumour composition and immune infiltration~\cite{fu2020pancancer}.
+\end{itemize}
+Neither case shows that tissue morphology carries information about expression \emph{beyond} which cells are present. If most accuracy is composition, a better encoder may simply be a better cell-type detector.
+
+\textbf{Tools we borrow.} \emph{Data thinning} splits a Poisson count into independent Poisson parts, giving synthetic replicates from a single measurement~\cite{neufeld2024thinning}. In neuroscience, models are judged against a \emph{noise ceiling}, the best accuracy possible given the noise in repeated measurements~\cite{lagecastellanos2019noise}. We combine the two ideas.
+
+\textbf{Novelty.} To our knowledge, this is the first per-gene decomposition of H\&E-to-expression accuracy into noise, composition and morphology in which (a) composition is measured on data independent of the target and (b) every share is expressed relative to a noise ceiling from the same assay. Our contribution is an evaluation framework, not another predictor.
+
+\textbf{Hypotheses.}
+\begin{itemize}
+  \item \textbf{H1:} much apparent failure is measurement noise.
+  \item \textbf{H2:} much apparent success is cell-type composition.
+  \item \textbf{H3:} proliferation, hypoxia, EMT and interferon programmes are visible in morphology beyond composition.
+\end{itemize}
+
+% ===========================================================================
+\section{Data}
+\label{sec:data}
+
+\begin{itemize}
+  \item \textbf{Source:} HEST-1k v1.3.0~\cite{jaume2024hest}, study \textit{Human Breast FFPE with Biomarkers \& Housekeeping Genes Custom Panel} (10x Genomics Xenium).
+  \item \textbf{Panel:} 280 genes. Xenium records the position and quality of every transcript, which is what makes thinning and cell typing on the same tissue possible.
+  \item \textbf{Patients:} 4, one section each (\cref{tab:samples}). One section per patient keeps leave-one-patient-out validation clean.
+  \item \textbf{Spots:} \SI{100}{\micro\metre} squares, each with a $224\times224$ px H\&E patch at \SI{0.5}{\micro\metre}/px. Spots with $<3$ cells or $<50$ counts were removed. All 280 genes were kept.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Samples used.} ``Other'': typed cells with no clear marker signature. ``In spots'': share of quality-passing transcripts that fall inside a spot.}
+\label{tab:samples}
+\begin{tabular}{llrrrr}
+\toprule
+Sample & Patient & Spots (patch / kept) & Typed cells & ``Other'' (\%) & In spots (\%) \\
+\midrule
+TENX191 & P1 & \num{4949} / \num{4605} & \num{193448} & 22.1 & 99.8 \\
+TENX195 & P2 & \num{6254} / \num{5971} & \num{319213} &  9.4 & 99.9 \\
+TENX199 & P3 & \num{2259} / \num{2247} & \num{146234} &  0.0 & 99.5 \\
+TENX202 & P4 & \num{4291} / \num{4253} & \num{197820} &  9.6 & 99.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ===========================================================================
+\section{Methods}
+\label{sec:methods}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{figures/fig0_pipeline.pdf}
+\caption{\textbf{Pipeline.} One set of transcripts gives the composition, the noise ceiling and the target. Transcripts are split at random into A (50\%), B1 (25\%) and B2 (25\%): A $\rightarrow$ cell types and composition; B1 vs.\ B2 $\rightarrow$ noise ceiling; $B=B1+B2$ $\rightarrow$ target. Ridge models are trained on 3 patients and tested on the 4th.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Binomial data thinning}
+Transcripts with quality $\mathrm{qv}\ge20$ on panel genes (control probes removed) were each assigned independently to A, B1 or B2:
+\[
+(A_{gs}, B1_{gs}, B2_{gs}) \mid X_{gs} \sim \mathrm{Multinomial}(X_{gs};\,0.5,\,0.25,\,0.25).
+\]
+If $X_{gs}\sim\mathrm{Poisson}(\lambda_{gs})$, the three parts are \emph{independent} Poisson variables with means $\lambda/2$, $\lambda/4$, $\lambda/4$~\cite{neufeld2024thinning}. So cell types from A share the tissue's biology with the target B but \emph{not} its sampling noise. Without this, composition could ``explain'' the target simply by sharing its noise.
+
+\subsection{Cell typing and composition}
+Part-A counts were summed per cell (cells with $\ge10$ part-A transcripts). Per sample: normalise, log-transform, PCA (30 components), 15-nearest-neighbour graph, Leiden clustering (resolution 1.0) in Scanpy. Each cluster got the best of ten marker-defined types (epithelial/tumour, fibroblast, myeloid, endothelial, T cell, B/plasma, mast, adipocyte, myoepithelial, perivascular smooth muscle), or ``Other'' if its best score was $<0.3$. Composition per spot = 11 type fractions + log cell count (12 features).
+
+\subsection{Image encoders}
+\begin{itemize}
+  \item \textbf{ResNet-50} with ImageNet weights~\cite{he2016resnet}: general-purpose, 2,048 features.
+  \item \textbf{Phikon-v2}~\cite{filiot2024phikonv2}: pathology foundation model (ViT-L, self-supervised on histology), 1,024 features.
+\end{itemize}
+Both were frozen; a linear read-out keeps the comparison about what the features contain.
+
+\subsection{Noise ceiling}
+For each gene, $y=\log(1+100\cdot C/\text{total counts})$ was computed for $C=B1$ and $B2$. With $r_g$ their correlation across spots, the Spearman--Brown formula gives the reliability of $B$:
+\[
+c_g = \frac{2r_g}{1+r_g}.
+\]
+$c_g$ is the share of target variance that is not noise, so it is the highest held-out $R^2$ any model can reach~\cite{lagecastellanos2019noise}. Programme scores (proliferation 20 genes, EMT 15, hypoxia 8, interferon 4) are averages of within-sample z-scores and get their own ceilings.
+
+\subsection{Decomposition}
+Three ridge models predict $B$:
+\begin{itemize}
+  \item \textbf{Composition model} (12 features) $\rightarrow \Rc$;
+  \item \textbf{Image model} (image features) $\rightarrow \Ri$;
+  \item \textbf{Full model}: composition model + an image model fitted to the composition model's residuals $\rightarrow \Rf$.
+\end{itemize}
+Because the image part only sees what composition leaves, $\dm = \Rf - \Rc$ is the image signal \emph{beyond} composition. Shares of the ceiling: $\text{comp\_share}=\Rc/c_g$, $\text{morph\_share}=\dm/c_g$ (genes with $c_g\ge0.2$). Each gene's variance therefore splits into four parts: composition, morphology, reachable but unexplained ($c_g-\Rf$), and noise ($1-c_g$).
+
+\textbf{Gene categories:} \emph{noise-limited} ($c_g<0.2$); else \emph{morphology-visible} (morph\_share $\ge0.10$); else \emph{composition-explained} ($\Ri\ge0.1\,c_g$); else \emph{not predicted}.
+
+\subsection{Validation and robustness}
+\begin{itemize}
+  \item \textbf{Leave-one-patient-out}, 4 folds. Ridge penalty chosen by an inner leave-one-patient-out over 21 values ($10^{-1}$--$10^{9}$). Features z-scored within sample.
+  \item \textbf{Floored $R^2$:} for headline shares, each held-out $R^2$ was floored at 0, because a gene with near-zero variance in one patient can give extreme values (e.g.\ \textit{NPY1R} $\dm=2.24$ in P4). Gene categories use unfloored values.
+  \item \textbf{Uncertainty:} 1,000 patient-level bootstrap resamples, 95\% intervals.
+  \item \textbf{Checks fixed before seeing results:} shuffled-image control; image $\rightarrow$ cell-type prediction (threshold $R^2\ge0.3$); per-patient replication; joint cell typing across samples (Harmony); comparison with HEST-Benchmark.
+\end{itemize}
+
+% ===========================================================================
+\section{Results}
+\label{sec:results}
+
+Each result below gives the figure, \emph{how to read it}, \emph{what it shows}, and \emph{what it means}.
+
+\subsection{Result 1: noise is not the bottleneck}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.49\linewidth]{core/figures/fig1_noise_resnet50.pdf}\hfill
+\includegraphics[width=0.49\linewidth]{core/figures/fig1_noise_phikon2.pdf}
+\caption{\textbf{High noise ceilings, low image $R^2$.} Left: ResNet-50. Right: Phikon-v2. $R^2$ below $-0.3$ is drawn at $-0.3$.}
+\label{fig:noise}
+\end{figure}
+
+\noindent\textbf{How to read.} Each blue dot is a gene, each red dot a programme. The x-axis is the noise ceiling (best possible $R^2$); the y-axis is the image model's $R^2$ on an unseen patient. The dashed diagonal is a perfect model. The vertical gap between a dot and the diagonal is signal the image could have captured but did not.
+
+\smallskip\noindent\textbf{What it shows.} Almost all dots lie far to the right (high ceiling) but far below the diagonal (low $R^2$) (\cref{fig:noise}). The median ceiling is $0.707$ (95\% CI $0.643$--$0.779$) and rises with expression (quartile medians $0.588$, $0.702$, $0.706$, $0.819$). Only 3 of 280 genes ($1.1\%$) have $c_g<0.2$; 48 ($17\%$) have $c_g<0.5$. Yet 226 (ResNet-50) and 181 (Phikon-v2) genes are \emph{not predicted}. Phikon-v2's cloud sits higher, but is still far from the diagonal. The shuffled-image control gives median $|R^2|=0.0007$, so the models do not fit spurious structure.
+
+\smallskip\noindent\textbf{What it means.} The genes are measured well enough to be predicted. When H\&E fails, it is because the image does not capture the signal, not because the signal is noise. \textbf{H1 is rejected.}
+
+\subsection{Result 2: prediction success is mostly composition}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{robustness/figures/fig2_decomposition_resnet50_floored.pdf}\\[4pt]
+\includegraphics[width=0.95\linewidth]{robustness/figures/fig2_decomposition_phikon2_floored.pdf}
+\caption{\textbf{Where each gene's variance goes.} Top: ResNet-50. Bottom: Phikon-v2 (held-out $R^2$ floored at 0).}
+\label{fig:decomp}
+\end{figure}
+
+\noindent\textbf{How to read.} Each bar is one gene, split into four parts that add to 1: \emph{composition} (blue), \emph{morphology} beyond composition (orange), \emph{reachable but unexplained} (grey: measurable signal no model captured) and \emph{noise} (lightest grey). Left: all 280 genes sorted by full-model $R^2$. Right: the 20 genes with the largest orange part.
+
+\smallskip\noindent\textbf{What it shows.} Blue dominates the explained part of every well-predicted gene; orange is a thin sliver for almost all genes (\cref{fig:decomp}). The largest part of most bars is grey: the signal exists, but neither cell types nor the image capture it. Even in the right panels, which are chosen \emph{for} morphology, orange is small next to blue and grey, and the top genes (\textit{ADIPOQ}, \textit{LPL}, \textit{ADH1B}, \textit{MYH11}, \textit{APOC1}) are adipose or smooth-muscle markers.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Headline numbers.} Median held-out $R^2$ over 280 genes (floored at 0), and the ratio $\Rc/\Ri$ among genes the image predicts ($\Ri>0.05$).}
+\label{tab:median}
+\begin{tabular}{lcccccc}
+\toprule
+Encoder & $\Rc$ & $\Ri$ & $\Rf$ & median $\dm$ & $\Rc/\Ri$ [95\% CI] & genes ($n$) \\
+\midrule
+ResNet-50 & 0.078 & 0.024 & 0.078 & $9\times10^{-6}$ & 1.77 [1.56--2.00] & 105 \\
+Phikon-v2 & 0.078 & 0.056 & 0.078 & $4\times10^{-5}$ & 1.12 [1.00--1.18] & 142 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{robustness/figures/fig_headline_ci_floored.pdf}
+\caption{\textbf{The composition result holds in every patient.} Diamonds: pooled; bars: 95\% bootstrap intervals; dots: the four held-out patients. Left: $\Rc/\Ri$ (dashed line at 1). Right: genes with morph\_share $\ge0.10$ and $\Rf>0$.}
+\label{fig:headline}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Per held-out patient} (floored). Ratio = median $\Rc/\Ri$; morph genes = genes with morph\_share $\ge0.10$ and $\Rf>0$.}
+\label{tab:perpatient}
+\begin{tabular}{lcccccc}
+\toprule
+& & & \multicolumn{2}{c}{ResNet-50} & \multicolumn{2}{c}{Phikon-v2} \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Patient & Sample & Median ceiling & Ratio & Morph genes & Ratio & Morph genes \\
+\midrule
+P1 & TENX191 & 0.762 & 1.79 & 1 & 1.07 & 3 \\
+P2 & TENX195 & 0.618 & 1.52 & 7 & 0.98 & 10 \\
+P3 & TENX199 & 0.710 & 1.57 & 5 & 1.17 & 9 \\
+P4 & TENX202 & 0.818 & 2.12 & 0 & 1.17 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{How to read \cref{fig:headline}.} Above the dashed line at 1, composition alone does at least as well as the image.
+
+\smallskip\noindent\textbf{What it shows.} Composition (12 numbers per spot) gives the same median $R^2$ as the full model, and adding the image on top adds essentially nothing (median $\dm\approx0$; \cref{tab:median}). Every patient is at or above 1 for both encoders (\cref{tab:perpatient}). Phikon-v2 lifts more genes above $\Ri=0.05$ (100 vs.\ 59), but its ratio stays near 1. In gene categories (unfloored), ResNet-50 has 51 composition-explained and 0 morphology-visible genes; Phikon-v2 has 90 and 6. Morphology-gene counts jump between patients (0 to 10), which is a sign of instability rather than a real signal.
+
+\smallskip\noindent\textbf{What it means.} What the image ``predicts'' is mostly which cells are present. The foundation model closes the gap to composition rather than going beyond it. \textbf{H2 is supported} in 4 of 4 patients and for both encoders.
+
+\subsection{Result 3: the two encoders agree on composition, not on morphology}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\linewidth]{core/figures/fig4_encoders.pdf}
+\caption{\textbf{Encoder comparison.} Left: per-gene $\dm$, ResNet-50 (x) vs.\ Phikon-v2 (y). Right: $\Rc$ (x) vs.\ $\Ri$ (y) for each gene and encoder. Values below $-0.3$ drawn at $-0.3$.}
+\label{fig:encoders}
+\end{figure}
+
+\noindent\textbf{How to read.} Left: if both encoders saw the same real morphology signal, dots would lie along the diagonal. Right: dots below the diagonal are genes where composition beats the image; dots above, the image beats composition.
+
+\smallskip\noindent\textbf{What it shows.} Left: dots cluster at (0,\,0) with no diagonal trend (Pearson $r=0.19$); the few points away from zero are not shared between encoders (\cref{fig:encoders}). Right: genes follow the diagonal, so genes predictable by composition are the same genes predictable by the image. ResNet-50 (blue) sits mostly below the diagonal; Phikon-v2 (orange) moves up toward it.
+
+\smallskip\noindent\textbf{What it means.} Real morphology signal would be found by both encoders. It is not, so the scattered $\dm$ values behave like noise. The image succeeds on the same genes as composition, and the foundation model's gain is a closer copy of composition.
+
+\subsection{Result 4: H\&E features encode the major cell types}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{robustness/figures/fig5_image_to_composition.pdf}
+\caption{\textbf{Predicting cell-type fractions from images.} Bars: mean held-out $R^2$; dots: patients; dashed line: pre-set threshold $R^2=0.3$. Rare types with near-constant fractions are not shown.}
+\label{fig:img2comp}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Held-out $R^2$ for image $\rightarrow$ cell-type fraction.} Bold: $\ge0.3$.}
+\label{tab:img2comp}
+\begin{tabular}{lccc}
+\toprule
+Cell type & Mean fraction & ResNet-50 & Phikon-v2 \\
+\midrule
+Epithelial/tumour & 0.29 & \textbf{0.42} & \textbf{0.53} \\
+T cells           & 0.11 & \textbf{0.37} & \textbf{0.53} \\
+Fibroblasts       & 0.18 & 0.25 & \textbf{0.40} \\
+Endothelial       & 0.08 & 0.07 & \textbf{0.38} \\
+Myeloid           & 0.13 & 0.14 & 0.26 \\
+Adipocytes        & 0.02 & $-0.81$ & $-1.16$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{How to read.} Same models and validation as before, but the target is a cell-type fraction instead of a gene. A bar above the dashed line means the image ``knows'' that cell type in new patients.
+
+\smallskip\noindent\textbf{What it shows.} Both encoders pass the threshold for epithelial/tumour and T cells; Phikon-v2 also passes for fibroblasts and endothelial cells, where ResNet-50 does not (\cref{fig:img2comp}, \cref{tab:img2comp}). Phikon-v2 is higher for every abundant type. Adipocytes cannot be predicted by either encoder.
+
+\smallskip\noindent\textbf{What it means.} This is the mechanism behind Result 2. The image recovers the main cell types, and through them the genes that mark those types. Phikon-v2 predicts genes better because it recognises cell types better. This agrees with earlier pan-cancer work showing that H\&E features capture tumour composition~\cite{fu2020pancancer}.
+
+\subsection{Result 5: morphology beyond composition is rare and does not replicate}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Genes with morph\_share $\ge0.10$ and $\Rf>0$} (floored), with the number of held-out patients in which each passes.}
+\label{tab:morph}
+\small\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llcl}
+\toprule
+Encoder & Gene & Patients passing & Likely cell type \\
+\midrule
+ResNet-50 & \textit{ADIPOQ}, \textit{LPL} & $\le 2$ of 4 & adipocyte \\
+\midrule
+Phikon-v2 & \textit{MYH11} & \textbf{3 of 4} & smooth muscle \\
+          & \textit{ADIPOQ}, \textit{LPL}, \textit{ADH1B}, \textit{APOC1} & 2 of 4 & adipocyte / lipid \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{What it shows.} Only 2 (ResNet-50, 95\% CI 0--5) and 5 (Phikon-v2, 2--9) genes pass (\cref{tab:morph}). All are adipose/lipid-metabolism or smooth-muscle markers, and only \textit{MYH11} passes in at least 3 of 4 patients. For \textit{ADIPOQ} and \textit{NPY1R}, $\dm$ changes sign between patients.
+
+\smallskip\noindent\textbf{What it means.} These are exactly the cell types our composition misses: adipocytes are large and RNA-poor, hard to segment, and not predictable from images either (\cref{tab:img2comp}). The most likely explanation is \emph{composition we failed to measure}, not new morphology. $\dm$ is therefore an upper bound, and the true morphology signal is even smaller. No tumour cell-state gene shows morphology signal.
+
+\subsection{Result 6: biological programmes are composition, not morphology}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.72\linewidth]{core/figures/fig3_programmes.pdf}
+\caption{\textbf{Programme variance split} for ResNet-50 and Phikon-v2 (left and right bar of each pair).}
+\label{fig:programmes}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Programme results} (unfloored). R / P = ResNet-50 / Phikon-v2. Ceiling and $\Rc$ do not depend on the encoder.}
+\label{tab:programmes}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccccl}
+\toprule
+Programme & Genes & Ceiling & $\Rc$ & $\Ri$ (R / P) & $\Rf$ (R / P) & $\dm$ (R / P) & Verdict \\
+\midrule
+Proliferation & 20 & 0.957 & 0.265 & 0.132 / 0.231 & 0.257 / 0.271 & $-0.008$ / 0.006 & composition \\
+EMT           & 15 & 0.971 & 0.729 & 0.468 / 0.610 & 0.742 / 0.755 & 0.013 / 0.027 & composition \\
+Interferon    &  4 & 0.926 & 0.320 & 0.075 / 0.166 & 0.320 / 0.317 & 0.000 / $-0.004$ & composition \\
+Hypoxia       &  8 & 0.833 & $-0.072$ & $-0.037$ / $-0.086$ & $-0.072$ / $-0.099$ & 0.000 / $-0.027$ & not predicted \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\noindent\textbf{How to read.} Blue = composition, orange = morphology, light grey = reachable but unexplained, dark grey = noise.
+
+\smallskip\noindent\textbf{What it shows.} Noise (dark grey) is small for every programme: ceilings are $0.83$--$0.97$ (\cref{fig:programmes}). EMT is mostly blue: composition reaches 75\% of its ceiling. Proliferation (28\%) and interferon (35\%) are partly blue and mostly light grey. Hypoxia has no blue at all. Orange is a hairline everywhere: every morph\_share is below $0.03$ (\cref{tab:programmes}).
+
+\smallskip\noindent\textbf{What it means.} Programme scores that look ``visible'' in H\&E track the abundance of tumour, stromal and immune cells, not a morphological cell state. Hypoxia is measured reliably, but neither composition nor the image predicts it. \textbf{H3 is rejected.}
+
+\subsection{Result 7: robustness}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{robustness/figures/fig6_joint_vs_persample.pdf}
+\caption{\textbf{Joint cell typing} (all samples clustered together after Harmony integration) vs.\ per-sample typing. (A) $\Rc$; (B) $\dm$; (C) share of spots labelled ``Other''.}
+\label{fig:joint}
+\end{figure}
+
+\noindent\textbf{How to read.} In A and B, dots on the diagonal mean the alternative labels change nothing; dots above the diagonal in A would mean joint labels explain more.
+
+\smallskip\noindent\textbf{What it shows.} A: dots scatter around or below the diagonal; genes with $\Rc>0.05$ fall from 104 to 91 (\cref{fig:joint}). B: $\dm$ stays near zero (morphology genes 0 $\rightarrow$ 0 for ResNet-50, 2 $\rightarrow$ 1 for Phikon-v2). C: ``Other'' drops for TENX191 (22\% $\rightarrow$ about 6\%) but rises for TENX199, and the largest TENX191 cluster is still 95\% TENX191, a residual batch effect.
+
+\smallskip\noindent\textbf{What it means.} The conclusion does not depend on how cells are labelled. Per-sample labels remain the main result, as fixed in advance.
+
+\smallskip\noindent\textbf{Benchmark check.} Median Pearson $r$ over the 50 most-expressed genes was $0.28$ (ResNet-50) and $0.35$ (Phikon-v2), below the $\approx0.47$ and $0.53$ reported on HEST-Benchmark with different splits~\cite{jaume2024hest}. The encoder ranking agrees. Our lower values are expected: testing on unseen patients is harder.
+
+% ===========================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Hypotheses and outcomes.}}
+\label{tab:hyp}
+\begin{tabular}{lll}
+\toprule
+Hypothesis & Result & Evidence \\
+\midrule
+H1: failure is mostly noise & Rejected & 1.1\% of genes noise-limited (Fig.~\ref{fig:noise}) \\
+H2: success is mostly composition & Supported & $\Rc/\Ri\ge1$ in 4/4 patients (Fig.~\ref{fig:headline}) \\
+H3: programmes visible in morphology & Rejected & all morph\_share $<0.03$ (Fig.~\ref{fig:programmes}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Putting the results together.} The seven results tell one story (\cref{tab:hyp}):
+\begin{enumerate}[leftmargin=*]
+  \item Genes are measurable (Result 1), so failure is not a data-quality problem.
+  \item The image recognises the main cell types (Result 4).
+  \item The genes the image predicts are those that cell types already explain (Results 2--3).
+  \item What is left beyond composition is small, inconsistent across encoders and patients, and points to cell types we failed to measure (Results 3, 5).
+  \item The same holds for biological programmes (Result 6) and for alternative cell labels (Result 7).
+\end{enumerate}
+At \SI{100}{\micro\metre} on this panel, \textbf{H\&E-to-expression prediction is mostly a read-out of cell-type composition.}
+
+\textbf{Relation to earlier work.} Our results help explain the modest, dataset-dependent accuracy in benchmarks~\cite{wang2025benchmark}: much of what is scored is composition, and the large ``reachable but unexplained'' part is signal the image does not capture. Gains from pathology foundation models~\cite{jaume2024hest} are real, but here they come from better cell-type recognition, not deeper expression biology. Reports that H\&E predicts tumour and immune genes~\cite{he2020stnet} are consistent with our findings if those signals are carried by the abundance of tumour and immune cells.
+
+\textbf{Recommendation for the field.} Every H\&E-to-expression model should report, per gene: (1) a noise ceiling, available from thinning for any single-molecule assay~\cite{neufeld2024thinning}; (2) a composition-only baseline, with cell types defined on data independent of the target; and (3) the gain beyond composition under patient-level splits. These are cheap to compute and turn one score into a statement about \emph{what} the model has learned.
+
+\textbf{Novelty and future direction.}
+\begin{itemize}
+  \item \textbf{Stronger encoders:} UNI2-h, Virchow2, H-optimus, CONCH (gated; not accessible here).
+  \item \textbf{Scale:} all 11 sections, other tissues, whole-transcriptome Visium HD, and finer spot sizes.
+  \item \textbf{Better composition:} segmentation-aware typing of adipocytes and stroma, to test whether the few ``morphology'' genes disappear.
+  \item \textbf{Statistics:} negative-binomial thinning for overdispersed counts.
+  \item \textbf{Tool:} release the decomposition as an open-source evaluation package for image-to-omics models.
+\end{itemize}
+
+\textbf{Limitations.}
+\begin{itemize}
+  \item One study, 4 patients, a 280-gene targeted panel; interferon has only 4 genes; a bootstrap over 4 patients is coarse.
+  \item Imperfect labels (22\% ``Other'' in TENX191; a doubtful ``mast'' cluster in TENX202) weaken composition, so $\dm$ is an upper bound.
+  \item Thinning assumes Poisson counts; overdispersion makes the ceiling approximate.
+  \item Frozen features with a linear read-out; fine-tuned models might differ.
+  \item The full model matched or beat composition (within 0.01) for 91.4\% (ResNet-50) and 80.0\% (Phikon-v2) of genes, short of the planned 95\%; the cause is image signal that does not transfer across patients, not a code error.
+\end{itemize}
+
+% ===========================================================================
+\section{Conclusion}
+
+\begin{keybox}{Conclusion}
+We separated H\&E-to-expression accuracy into noise, composition and morphology for every gene, using data thinning and leave-one-patient-out models on Xenium breast cancer data.
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Noise} explains little: most genes are measurable but not predicted.
+  \item \textbf{Composition} explains most of what the image predicts, in every patient and for both encoders.
+  \item \textbf{Morphology beyond composition} is essentially absent and points to cell types we missed.
+\end{itemize}
+Image-to-omics models should be evaluated against a composition baseline and a noise ceiling before claiming they ``see'' expression in tissue.
+\end{keybox}
+
+\medskip
+\noindent\textbf{Code and data.}\\
+\url{https://github.com/biprabhanu/histology-transcriptomics-decomposition}\\
+\url{https://huggingface.co/datasets/MahmoodLab/hest} (HEST-1k)
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}
