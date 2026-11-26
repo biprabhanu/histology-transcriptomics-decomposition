@@ -7,6 +7,19 @@
 
 We separate these per gene, each as a fraction of a per-gene noise ceiling.
 
+**Why it matters.** H&E-to-expression models are scored by one accuracy number per gene ([He et al. 2020](https://doi.org/10.1038/s41551-020-0578-x); [Jaume et al. 2024](https://arxiv.org/abs/2406.16192)), and a benchmark of eleven methods found modest accuracy and no single best method ([Wang et al. 2025](https://doi.org/10.1038/s41467-025-56618-y)). H&E features are known to capture tumour composition ([Fu et al. 2020](https://doi.org/10.1038/s43018-020-0085-8)). We measure, per gene, how much of the accuracy is just composition.
+
+**How.** Data thinning ([Neufeld et al. 2024](https://jmlr.org/papers/v25/23-0446.html)) splits one Xenium assay into independent parts for cell typing, a split-half noise ceiling ([Lage-Castellanos et al. 2019](https://doi.org/10.1371/journal.pcbi.1006397)) and the prediction target. Nested ridge models with leave-one-patient-out validation separate composition from image signal beyond composition.
+
+## Documents
+| | |
+|---|---|
+| 📄 **Report (PDF)** | [`reports/PROJECT_REPORT.pdf`](reports/PROJECT_REPORT.pdf), 8-page paper with figures and references |
+| 📝 Report (Markdown) | [`reports/PROJECT_REPORT.md`](reports/PROJECT_REPORT.md), same text, readable on GitHub |
+| 🧾 LaTeX source | [`reports/latex/`](reports/latex/) (`main.tex`, `references.bib`) |
+| 📊 Presentation | [`presentation/DH607_presentation_noise_composition_morphology.pdf`](presentation/DH607_presentation_noise_composition_morphology.pdf) |
+| 📌 Results summary | [`reports/RESULTS_SUMMARY.md`](reports/RESULTS_SUMMARY.md), short poster version |
+
 **Data.**
 - [HEST-1k](https://github.com/mahmoodlab/HEST) v1.3.0 ([Hugging Face](https://huggingface.co/datasets/MahmoodLab/hest)), the 10x Genomics Xenium study *"Human Breast FFPE with Biomarkers & Housekeeping Genes Custom Panel"* ([10x datasets](https://www.10xgenomics.com/datasets)).
 - 280-gene panel; 4 patients, one representative section each (TENX191, TENX195, TENX199, TENX202).
@@ -51,6 +64,11 @@ HEST is gated: accept its terms on Hugging Face and log in first.
 | ![decomposition](results/robustness/figures/fig2_decomposition_phikon2_floored.png) | ![headline CI](results/robustness/figures/fig_headline_ci_floored.png) |
 | ![image to composition](results/robustness/figures/fig5_image_to_composition.png) | ![programmes](results/core/figures/fig3_programmes.png) |
 
+### Building the PDF
+```bash
+cd reports/latex && latexmk -pdf main.tex     # figures are read from ../../results/
+```
+
 ## Limitations
 - One study, one section per patient (n = 4), 280-gene panel.
 - Imperfect cell-type labels make Δmorph an upper bound; joint typing did not fix this.
@@ -59,6 +77,17 @@ HEST is gated: accept its terms on Hugging Face and log in first.
 - Gated foundation models (UNI2-h, Virchow2) were not tested.
 
 ## Authors
-Bipra Bhanu Mohanty and Madhur. DH607 Computational Multi-omics, IIT Bombay; instructor Prof. Saket Choudhary.
+Bipra Bhanu Mohanty and Madhur Omprakash Likhmani. DH607 Computational Multi-omics, IIT Bombay; instructor Prof. Saket Choudhary.
+
+## Citation
+```bibtex
+@misc{mohanty2026morphology,
+  author = {Mohanty, Bipra Bhanu and Likhmani, Madhur Omprakash},
+  title  = {What Does Tissue Morphology Encode? Separating Measurement Noise, Cell-Type Composition and Morphology in {H\&E}-to-Gene-Expression Prediction},
+  year   = {2026},
+  note   = {DH607 course project, IIT Bombay},
+  url    = {https://github.com/biprabhanu/histology-transcriptomics-decomposition}
+}
+```
 
 *`archive/phase1_baseline/` holds the earlier HEST-Bench baseline (Phase 1: ResNet-50 + ridge on HEST IDC).*
