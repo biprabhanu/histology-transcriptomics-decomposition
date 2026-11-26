@@ -14,10 +14,10 @@ We separate these per gene, each as a fraction of a per-gene noise ceiling.
 ## Documents
 | | |
 |---|---|
-| 📄 **Report (PDF)** | [`reports/PROJECT_REPORT.pdf`](reports/PROJECT_REPORT.pdf), 8-page paper with figures and references |
-| 📝 Report (Markdown) | [`reports/PROJECT_REPORT.md`](reports/PROJECT_REPORT.md), same text, readable on GitHub |
-| 🧾 LaTeX source | [`reports/latex/`](reports/latex/) (`main.tex`, `references.bib`) |
-| 📊 Presentation | [`presentation/DH607_presentation_noise_composition_morphology.pdf`](presentation/DH607_presentation_noise_composition_morphology.pdf) |
+| **Report (PDF)** | [`reports/PROJECT_REPORT.pdf`](reports/PROJECT_REPORT.pdf), 8-page paper with figures and references |
+| Report (Markdown) | [`reports/PROJECT_REPORT.md`](reports/PROJECT_REPORT.md), same text, readable on GitHub |
+| LaTeX source | [`reports/latex/`](reports/latex/) (`main.tex`, `references.bib`) |
+| Presentation | [`presentation/DH607_presentation_noise_composition_morphology.pdf`](presentation/DH607_presentation_noise_composition_morphology.pdf) |
 | 📌 Results summary | [`reports/RESULTS_SUMMARY.md`](reports/RESULTS_SUMMARY.md), short poster version |
 
 **Data.**
