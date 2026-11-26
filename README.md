@@ -18,7 +18,7 @@ We separate these per gene, each as a fraction of a per-gene noise ceiling.
 | Report (Markdown) | [`reports/PROJECT_REPORT.md`](reports/PROJECT_REPORT.md), same text, readable on GitHub |
 | LaTeX source | [`reports/latex/`](reports/latex/) (`main.tex`, `references.bib`) |
 | Presentation | [`presentation/DH607_presentation_noise_composition_morphology.pdf`](presentation/DH607_presentation_noise_composition_morphology.pdf) |
-| 📌 Results summary | [`reports/RESULTS_SUMMARY.md`](reports/RESULTS_SUMMARY.md), short poster version |
+| Results summary | [`reports/RESULTS_SUMMARY.md`](reports/RESULTS_SUMMARY.md), short poster version |
 
 **Data.**
 - [HEST-1k](https://github.com/mahmoodlab/HEST) v1.3.0 ([Hugging Face](https://huggingface.co/datasets/MahmoodLab/hest)), the 10x Genomics Xenium study *"Human Breast FFPE with Biomarkers & Housekeeping Genes Custom Panel"* ([10x datasets](https://www.10xgenomics.com/datasets)).
